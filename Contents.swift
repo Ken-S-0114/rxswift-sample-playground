@@ -3,7 +3,7 @@
 import UIKit
 import Foundation
 
-// 「A（Member）に変化が生じたら B（Boss）に伝えたい」とき
+// Part1: 「A（Member）に変化が生じたら B（Boss）に伝えたい」とき
 class Member {
     private let boss: Boss
     public var isFine: Bool = true {
@@ -30,7 +30,8 @@ member1.isFine = true
 
 print("-----------------------------------------------------------")
 // -----------------------------------------------------------
-// 「通知元（A）の状態変化を、複数の通知先（B, C, D...）に伝えたい」とき
+
+// Part2: 「通知元（A）の状態変化を、複数の通知先（B, C, D...）に伝えたい」とき
 class A {
     private let b: B
     private let c: C
@@ -74,7 +75,7 @@ a1.isFine = false
 print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// pull型 Observer パターン:
+// Part3: pull型Observerパターン:
 // ObserverはObservableの状態が更新されたという事実を知ることができるが、どのような値に更新されたのかはObservableのプロパティなどを参照しにいかなければ知ることができない
 
 public protocol Observable {
@@ -113,12 +114,74 @@ public class ConcreteObserver: Observer {
 let v1 = ConcreteObservable()
 let obs1 = ConcreteObserver()
 v1.subscribe(obs: obs1)
-v1.isHoge = true
+v1.isHoge = true    //=> ログ出力される
 v1.unsubscribe(obs: obs1)
-v1.isHoge = false
+v1.isHoge = false   //=> ログ出力されない
 
 print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// push 型 Observer パターン: notify 時に更新後の値を渡してしまう構造にしたもの
+// Part4: push型Observerパターン: notify時に更新後の値を渡してしまう構造
+public protocol ObserverType: class {
+    associatedtype E
+    func notify(value: E)
+}
+
+public protocol ObservableType {
+    associatedtype E
+    func subscribe<O: ObserverType>(obs: O) where O.E == E
+    func unsubscribe<O: ObserverType>(obs: O) where O.E == E
+}
+
+// abstractクラス: abstractクラスとは、抽象(Protocolのようなもの)メソッドを1つ以上持つクラス
+public class PushObservable<Element>: ObservableType {
+    public typealias E = Element
+    public func subscribe<O>(obs: O) where O : ObserverType, Element == O.E {
+        fatalError("not implemented")
+    }
+    public func unsubscribe<O>(obs: O) where O : ObserverType, Element == O.E {
+        fatalError("not implemented")
+    }
+}
+
+public class BooleanObservable: PushObservable<Bool> {
+    private var observers: [ObjectIdentifier:AnonymousObserver<Bool>] = [:]
+    public var isHoge: Bool = false {
+        didSet(value) {
+            observers.forEach { x in
+                x.value.notify(value: isHoge)   // 通知時に更新後の値を渡す
+            }
+        }
+    }
+    public override func subscribe<O>(obs: O) where O: ObserverType, O.E == Bool {
+        observers[ObjectIdentifier(obs)] = AnonymousObserver(handler: obs.notify)
+    }
+    public override func unsubscribe<O>(obs: O) where O : ObserverType, O.E == Bool {
+        observers[ObjectIdentifier(obs)] = nil
+    }
+}
+
+public class AnonymousObserver<Element>: ObserverType {
+    public typealias E = Element
+    public typealias Handler = (E) -> Void
+    private let handler: Handler
+
+    public init(handler: @escaping Handler) {
+        self.handler = handler
+    }
+
+    public func notify(value: Element) {
+        handler(value)
+    }
+}
+
+var observable = BooleanObservable()
+var observer = AnonymousObserver<Bool>(handler: { x in print("\(String(x))") })
+
+observable.isHoge = false   //=> ログ出力されない
+observable.subscribe(obs: observer)
+observable.isHoge = true    //=> ログ出力される
+observable.unsubscribe(obs: observer)
+observable.isHoge = false   //=> ログ出力されない
+
 
