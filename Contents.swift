@@ -3,7 +3,7 @@
 import UIKit
 import Foundation
 
-// Part1: 「A（Member）に変化が生じたら B（Boss）に伝えたい」とき
+//// Part1: 「A（Member）に変化が生じたら B（Boss）に伝えたい」とき
 //class Member {
 //    private let boss: Boss
 //    public var isFine: Bool = true {
@@ -28,7 +28,7 @@ import Foundation
 //print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// Part2: 「通知元（A）の状態変化を、複数の通知先（B, C, D...）に伝えたい」とき
+//// Part2: 「通知元（A）の状態変化を、複数の通知先（B, C, D...）に伝えたい」とき
 //class A {
 //    private let b: B
 //    private let c: C
@@ -72,7 +72,7 @@ import Foundation
 //print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// Part3: pull型Observerパターン:
+//// Part3: pull型Observerパターン:
 // ObserverはObservableの状態が更新されたという事実を知ることができるが、どのような値に更新されたのかはObservableのプロパティなどを参照しにいかなければ知ることができない
 
 //public protocol Observable {
@@ -118,7 +118,7 @@ import Foundation
 //print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// Part4: push型Observerパターン: notify時に更新後の値を渡してしまう構造
+//// Part4: push型Observerパターン: notify時に更新後の値を渡してしまう構造
 //public protocol ObserverType: class {
 //    associatedtype E
 //    func notify(value: E)
@@ -184,7 +184,7 @@ import Foundation
 //print("-----------------------------------------------------------")
 // -----------------------------------------------------------
 
-// Part5-1: RxSwift の Observer, Observable の実装
+//// Part5-1: RxSwift の Observer, Observable の実装
 
 // nofity時に値を .next, .error, .completed という文脈につつむ enum Event にラップして渡している
 public enum Event<Element> {
@@ -305,7 +305,8 @@ var observer = RxAnonymousObserver<Bool>({ event in
 
 var disposable = isHoge.subscribe(observer)
 isHoge.on(Event.next(true))
-disposable.dispose()
 isHoge.on(Event.next(false))
+disposable.dispose()
+isHoge.on(Event.next(true))
 
 
