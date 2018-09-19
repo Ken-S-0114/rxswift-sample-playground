@@ -261,17 +261,51 @@ public protocol SubjectType: RxObservableType { // 普段はObservableとして�
     func asObserver() -> SubjectObserverType // 必要なときにSubjectObserverTypeに変換できる
 }
 
-public class PublicSubject<Element>: RxObservable<Element>, RxObserverType, SubjectType{
+protocol UnsubscribeType: class {
+    func unsubscribe(key: String)
+}
+
+public class PublicSubject<Element>: RxObservable<Element>, RxObserverType, SubjectType, UnsubscribeType{
     public typealias SubjectObserverType = PublicSubject<Element>
     var observers: [String:RxAnonymousObserver<Element>] = [:]
 
     public override func subscribe<O>(_ observer: O) -> Disposable where O: RxObserverType, O.E == Element {
         let key = UUID().uuidString
         observers[key] = RxAnonymousObserver(observer.on)
-        fatalError()
+        //=> unsubscribe が以下のように実装されたので、key と 自分自身への弱参照を保持するオブジェクトを返せばよい
+        return SubscriptionDisposable<Element>(ref: self, key: key)
+    }
+    internal func unsubscribe(key: String) {
+        observers.removeValue(forKey: key)
     }
     public func on(_ event: Event<Element>) { observers.forEach { x in x.value.on(event) } }
     public func asObserver() -> PublicSubject<Element> { return self }
 }
+
+struct SubscriptionDisposable<T>: Disposable {
+    weak var ref: UnsubscribeType?
+    let key: String
+    init(ref: UnsubscribeType, key: String) {
+        self.ref = ref
+        self.key = key
+    }
+    public func dispose() {
+        ref?.unsubscribe(key: key)
+    }
+}
+
+var isHoge = PublicSubject<Bool>()
+var observer = RxAnonymousObserver<Bool>({ event in
+    switch(event) {
+    case .next(var value):  print("\(String(value))")
+    case .error(var error): print("\(error.localizedDescription)")
+    case .completed:    print("completed")
+    }
+})
+
+var disposable = isHoge.subscribe(observer)
+isHoge.on(Event.next(true))
+disposable.dispose()
+isHoge.on(Event.next(false))
 
 
